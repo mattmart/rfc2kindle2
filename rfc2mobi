@@ -19,39 +19,27 @@ Created on May 31, 2011
 '''
 
 import urllib2, urllib, sys, os, getopt, io, subprocess
-import pdb, inspect
 import shutil
 from html import Html
 
-def rfc2mobi(kgen, doc, link, file):
-    if file is None:
-        req = urllib2.Request(link)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-        response = urllib2.urlopen(req)
-    elif not os.path.exists(file):
-        print "Failed to fetch from file, but we were given the option for it! bailing..."
-        exit(1)
-    else:
-        print "doing it"
-        with open(file,'r') as myfile:
-            response = myfile.readlines()
-        #hot damn, the file exists and we can read from it. Let's do it.
+def rfc2mobi(kgen, doc, lines):
         
+    #making directory structure
+    #TODO: make the directory structure not dependent on rfc number
     if not os.path.exists(doc):
         os.makedirs(doc)
 
     output = open(os.path.join(doc, doc+'.html'), 'w')
     
-    html = Html('%s' %(doc), response, output)
+    html = Html('%s' %(doc), lines, output)
     html.createHTML()
-    #response.close()
     output.close()
 
-    print "output done being generated, pausing"
+    #using kindlegen binary to create .mobi file
     exitCode = subprocess.call([kgen, os.path.join(doc, doc+'.html'), '-o', doc+".mobi"])
     if exitCode >= 2:
         print "Fatal error while processing %s." %(doc)
-        print "Deleting attempting directory %s." %(doc)
+        print "Deleting attempted directory %s." %(doc)
         shutil.rmtree(doc)
     else:  
         print "Successfully converted %s into %s directory." % (doc, doc)
@@ -61,10 +49,31 @@ def usage():
 
 kgen=os.path.join("./", "kindlegen")
 
+
+def getlines(doc, link, file):
+    final_lines = []
+
+    if file is None:
+        print ""
+        print "link = %s, rfc was = %s" % (link, doc)
+        req = urllib2.Request(link)
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+        response = urllib2.urlopen(req)
+        for line in response:
+            final_lines.append(line)
+        response.close()
+    elif not os.path.exists(file):
+        print "Failed to fetch from file, but we were given the option for it! bailing..."
+        exit(1)
+    else:
+        with open(file,'r') as myfile:
+            final_lines = myfile.readlines()
+    return final_lines
+    
 if __name__ == '__main__':
     
     try:
-      opts, args = getopt.getopt(sys.argv[1:], "hk:f:", ["help", "kindlegen=","file="])
+      opts, args = getopt.getopt(sys.argv[1:], "hk:f:", ["help", "kindlegen=","rfc-file="])
     except getopt.GetoptError:
       usage()
       sys.exit(2)
@@ -77,7 +86,7 @@ if __name__ == '__main__':
         sys.exit()
       elif opt in ("-k", "--kindlegen"):
         kgen=arg
-      elif opt in ("-f", "--file"):
+      elif opt in ("-f", "--rfc-file"):
         file=arg
         print "file was " + file
 
@@ -92,5 +101,7 @@ if __name__ == '__main__':
         link = sys.argv[-1]
         doc = sys.argv[-1].split('/')[-1]
 
-    print "link = %s, doc = %s" % (link, doc)
-    rfc2mobi(kgen, doc, link,file)
+    #arguments are cleaned up, fetch the actual lines we will process
+    lines = getlines(doc,link,file)
+
+    rfc2mobi(kgen, doc, lines)

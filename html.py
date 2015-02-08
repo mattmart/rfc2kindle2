@@ -17,6 +17,9 @@ class Html():
     toc = []
     rfcElms = ['Info', 'Title', 'Abstract', 'Toc', 'Content']
     rfc = ''
+    css_dir = ''
+    root_dir = ''
+    images_dir = ''
     title = ''
     leftIndent = 0
     textBlock = None
@@ -25,10 +28,13 @@ class Html():
     hasTOC = False
     orig_lines = []
     preprocessed_lines = []
-    def __init__(self, rfc, input, output):
+    def __init__(self, root_dir, css_dir,images_dir, rfc, input, output):
         self.input = input
         self.output = output
         self.rfc = rfc.lower()
+        self.root_dir = root_dir
+        self.css_dir = css_dir
+        self.images_dir = images_dir
         self.info = StringIO()
         
         for line in self.input:
@@ -38,7 +44,7 @@ class Html():
             self.preprocessed_lines.append(line)
         
         if not self.hasTOC:
-           builtTOC = buildTOC(preprocessed_lines)
+           built_toc = build_toc(self.preprocessed_lines)
         
     def writeInfo(self, line):
         if not re.match('^\s*$', line):
@@ -53,13 +59,13 @@ class Html():
 <html>
 <head>
 <title>%s</title>
-<link rel="stylesheet" href="../css/rfc.css" type="text/css" />
+<link rel="stylesheet" href="css/rfc.css" type="text/css" />
 </head>
 <body>''' % (self.rfc.upper()+" - "+self.title))
-            createImage(self.info.getvalue(), '%s/auths.jpg' % (self.rfc))
-            createCoverFromImage('%s/auths.jpg' % (self.rfc), '%s/cover.jpg' % (self.rfc))
+            createImage(self.info.getvalue(), '%s/auths.jpg' % (self.root_dir + "/" + self.images_dir))
+            createCoverFromImage('%s/auths.jpg' % (self.root_dir + "/" +self.images_dir), '%s/cover.jpg' % (self.root_dir + "/" +self.images_dir))
 
-            self.output.write('<img src="auths.jpg" />')
+            self.output.write('<img src="%s/auths.jpg"/>' % (self.images_dir ))
             self.output.write("<h1>%s</h1>" % (self.title))
             return self.writeAbstract(line)
 
@@ -72,6 +78,10 @@ class Html():
         if isRFCPageBreaker(line):
             return getattr(self, "writeAbstract")
         
+        if not self.hasTOC:
+            
+            return getattr(self, "writeContent")
+            
         if is_toc(line):
             self.output.write("<mbp:pagebreak/>\n")
             self.output.write('<p><a id="TOC"/><h3>%s</h3></a></p>\n' % (line.rstrip()))
@@ -168,8 +178,8 @@ class Html():
     def outputTextBlock(self):
 	outputlines = self.textBlock.getvalue().splitlines()[:-1]
 	if isImageOutput(outputlines):
-	    createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.rfc, self.imageCount))
-	    self.output.write('<img src="img%d.jpg" />' % (self.imageCount))
+	    createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.root_dir + "/" + self.images_dir, self.imageCount))
+	    self.output.write('<img src="%s/img%d.jpg" />' % (self.images_dir, self.imageCount))
 	    self.imageCount = self.imageCount + 1
 	else:
 	    self.output.write("<blockquote> \n")
@@ -193,8 +203,8 @@ class Html():
         
         if re.match(r'^\s+Figure\s.*', line):
             self.textBlock.write(line)
-            createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.rfc, self.imageCount))
-            self.output.write('<img src="img%d.jpg" />' % (self.imageCount))
+            createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.root_dir + "/" + self.images_dir, self.imageCount))
+            self.output.write('<img src="%s/img%d.jpg" />' % (self.images_dir, self.imageCount))
             self.imageCount = self.imageCount + 1
             self.textBlock.close()
             self.textBlock = None
@@ -233,10 +243,10 @@ def is_normal_page_number(line):
 
 def is_roman_numeral(line):
     # F'ing Roman numerals...
-    return re.match(r'^RFC.*[1-2]\d\d\d', line) 
+    return re.match(r'.*\[Page.*M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})?\]', line, re.IGNORECASE)
 
 def is_other_formatting(line):
-    return re.match(r'.*\[Page.*M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})?\]', line, re.IGNORECASE)
+    return re.match(r'^RFC.*[1-2]\d\d\d', line) 
 
 isFigureLine = lambda i: string.count(i, '---') > 0 or string.count(i, '|') > 1 or string.count(i, '+') > 1 or string.count(i, '>') > 3 or string.count(i, '<') > 3
 
@@ -259,3 +269,10 @@ def isImageOutput(lines):
 
 def is_toc(line):
     return re.match(r'table of contents', line.lstrip().rstrip().lower())
+
+def build_toc(lines):
+    build_toc = []
+    for line in lines:
+        if re.match(r'^\d+\.', line):
+            build_toc.append(line)
+    return build_toc

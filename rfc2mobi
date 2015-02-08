@@ -16,41 +16,63 @@ For I-D, specific the link where it can download.
 '''
 Created on May 31, 2011
 @author: rhuang
+@modifier: mmartinez
 '''
 
 import urllib2, urllib, sys, os, getopt, io, subprocess
+import configuration
 import shutil
 from html import Html
 
-def rfc2mobi(kgen, doc, lines):
-        
-    #making directory structure
-    #TODO: make the directory structure not dependent on rfc number
-    if not os.path.exists(doc):
-        os.makedirs(doc)
 
-    output = open(os.path.join(doc, doc+'.html'), 'w')
+def rfc2mobi(kgen, rfc, lines):
+        
+    parDir = configuration.get_default_dir()
+    directory = parDir + "/"+ rfc
+    css_dir = configuration.get_css_dir() 
+    images_dir = configuration.get_images_dir()
+
+    if not os.path.exists(directory + "/" + images_dir):
+        os.makedirs(directory + "/" +images_dir)
+    if not os.path.exists(directory + "/" +css_dir):
+        os.makedirs(directory + "/" +css_dir)
     
-    html = Html('%s' %(doc), lines, output)
+    html_file = os.path.join(directory, rfc+'.html')
+
+    output = open(html_file, 'w')
+    
+    html = Html(directory, css_dir, images_dir, rfc, lines, output)
     html.createHTML()
+    
+    src_css_files = os.listdir(configuration.get_css_src_dir())
+    for file_name in src_css_files:
+        full_file_name = os.path.join(configuration.get_css_src_dir(), file_name)
+        if (os.path.isfile(full_file_name)):
+            shutil.copy(full_file_name, directory +"/"+ css_dir)
+    
     output.close()
 
     #using kindlegen binary to create .mobi file
-    exitCode = subprocess.call([kgen, os.path.join(doc, doc+'.html'), '-o', doc+".mobi"])
+    exitCode = subprocess.call([kgen, html_file, '-o', rfc+'.mobi'])
+    
+    #1 or 0 means warnings or success
     if exitCode >= 2:
-        print "Fatal error while processing %s." %(doc)
-        print "Deleting attempted directory %s." %(doc)
+        print "Fatal error while processing %s." %(rfc)
+        print "Deleting attempted directory %s." %(rfc)
         shutil.rmtree(doc)
     else:  
-        print "Successfully converted %s into %s directory." % (doc, doc)
+        print "Successfully converted %s into %s directory." % (rfc, rfc)
 
 def usage():
-     print __doc__
-
-kgen=os.path.join("./", "kindlegen")
-
+    '''
+    Usage of this program
+    '''
+    print __doc__
 
 def getlines(doc, link, file):
+    '''
+    whatever the arguments were, produce an array of files to operate on
+    '''
     final_lines = []
 
     if file is None:
@@ -71,7 +93,9 @@ def getlines(doc, link, file):
     return final_lines
     
 if __name__ == '__main__':
-    
+    '''
+    Should clean up the arguments, get the lines, and kick off the process
+    '''
     try:
       opts, args = getopt.getopt(sys.argv[1:], "hk:f:", ["help", "kindlegen=","rfc-file="])
     except getopt.GetoptError:
@@ -79,6 +103,7 @@ if __name__ == '__main__':
       sys.exit(2)
 
     file = None
+    kgen = configuration.get_kindlegen()
     
     for opt, arg in opts:
       if opt in ("-h", "--help"):
@@ -103,5 +128,8 @@ if __name__ == '__main__':
 
     #arguments are cleaned up, fetch the actual lines we will process
     lines = getlines(doc,link,file)
-
+    
+    par_dir = configuration.get_default_dir()
+    
+    #the path is ready, the args are clean, lock 'n load
     rfc2mobi(kgen, doc, lines)

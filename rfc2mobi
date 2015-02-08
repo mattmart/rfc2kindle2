@@ -7,6 +7,7 @@ A program to convert RFC or I-D to mobi formatted eBooks.
 Options:
   -k ..., --kindlegen=...  The kindlegen program to use. By default, it's "./kindlegen"
   -h, --help
+  -f, --file=... The file to read instead of fetching a link
 
 If you want to convert a RFC, just give the RFC name as command line option.
 For I-D, specific the link where it can download. 
@@ -17,22 +18,25 @@ Created on May 31, 2011
 @author: rhuang
 '''
 
-import urllib2, urllib, sys, os, getopt
-from html import Html
+import urllib2, urllib, sys, os, getopt, io, subprocess
+import pdb, inspect
 import shutil
+from html import Html
 
-def getHttpData(url):
-    req = urllib2.Request(url)
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-    response = urllib2.urlopen(req)
-    httpdata = response.read()
-    response.close()
-    return httpdata
-    
-def rfc2mobi(kgen, doc, link):
-    req = urllib2.Request(link)
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-    response = urllib2.urlopen(req)
+def rfc2mobi(kgen, doc, link, file):
+    if file is None:
+        req = urllib2.Request(link)
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+        response = urllib2.urlopen(req)
+    elif not os.path.exists(file):
+        print "Failed to fetch from file, but we were given the option for it! bailing..."
+        exit(1)
+    else:
+        print "doing it"
+        with open(file,'r') as myfile:
+            response = myfile.readlines()
+        #hot damn, the file exists and we can read from it. Let's do it.
+        
     if not os.path.exists(doc):
         os.makedirs(doc)
 
@@ -40,32 +44,32 @@ def rfc2mobi(kgen, doc, link):
     
     html = Html('%s' %(doc), response, output)
     html.createHTML()
-    response.close()
+    #response.close()
     output.close()
-    if html.hasContent:
-        os.system("%s %s -o %s.mobi" % (kgen, os.path.join(doc, doc+'.html'), doc))
-    else:
-        print "Unrecognize %s." %(doc)
+
+    print "output done being generated, pausing"
+    exitCode = subprocess.call([kgen, os.path.join(doc, doc+'.html'), '-o', doc+".mobi"])
+    if exitCode >= 2:
+        print "Fatal error while processing %s." %(doc)
+        print "Deleting attempting directory %s." %(doc)
         shutil.rmtree(doc)
-    
-    print "Successfully converted %s into %s directory." % (doc, doc)
+    else:  
+        print "Successfully converted %s into %s directory." % (doc, doc)
 
 def usage():
      print __doc__
 
-kgen=os.path.join(".", "kindlegen")
+kgen=os.path.join("./", "kindlegen")
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print __doc__
-        sys.exit(2)
     
     try:
-      opts, args = getopt.getopt(sys.argv[1:], "hk:", ["help", "kindlegen="])
+      opts, args = getopt.getopt(sys.argv[1:], "hk:f:", ["help", "kindlegen=","file="])
     except getopt.GetoptError:
       usage()
       sys.exit(2)
 
+    file = None
     
     for opt, arg in opts:
       if opt in ("-h", "--help"):
@@ -73,6 +77,9 @@ if __name__ == '__main__':
         sys.exit()
       elif opt in ("-k", "--kindlegen"):
         kgen=arg
+      elif opt in ("-f", "--file"):
+        file=arg
+        print "file was " + file
 
     if len(sys.argv) < 2:
       usage()
@@ -86,4 +93,4 @@ if __name__ == '__main__':
         doc = sys.argv[-1].split('/')[-1]
 
     print "link = %s, doc = %s" % (link, doc)
-    rfc2mobi(kgen, doc, link)
+    rfc2mobi(kgen, doc, link,file)

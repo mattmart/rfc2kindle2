@@ -1,9 +1,9 @@
-import Image
-import ImageDraw
-import ImageFont
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 
 #textFont=ImageFont.truetype("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", 20)
-_default_font = ImageFont.truetype('/usr/share/cups/fonts/Courier-Bold', 18)
+_default_font = ImageFont.truetype('/Library/Fonts/Courier New Bold.ttf', 18)
 
 class RFCImage():
     def __init__(self, width, height, filename):
@@ -40,6 +40,25 @@ def createImage(text, filename):
 
     rfcImg.save()
 
+# Turn the authors page into a .mobi compliant cover (at least 500x800 px)
+def createCoverFromImage(srcFilename, destFilename):
+    print "Generating cover from %s..." % (srcFilename)
+    origImg = Image.open(srcFilename)
+
+    imgSize = list(origImg.size)
+    imgOffset = [0,0]
+    if imgSize[0] < 500:
+        imgOffset[0] = (500 - imgSize[0]) // 2
+        imgSize[0] = 500
+    if imgSize[1] < 800:
+        imgOffset[1] = (800 - imgSize[1]) // 2
+        imgSize[1] = 800
+
+    coverImg = Image.new('RGB',tuple(imgSize),(255,255,255))
+    coverImg.paste(origImg,tuple(imgOffset))
+    coverImg.save(destFilename)
+    print "Cover %s generated (%s x %s px) from %s (%s x %s px)." % (destFilename, imgSize[0], imgSize[1], srcFilename, origImg.size[0], origImg.size[1])
+
 if __name__ == "__main__":
     figure='''
                      atlanta.com  . . . biloxi.com
@@ -71,3 +90,4 @@ if __name__ == "__main__":
          Figure 1: SIP session setup example with SIP trapezoid
 '''
     createImage(figure, 'mytext.jpg')
+    createCover(figure, 'mytext-cover.jpg')

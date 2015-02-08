@@ -1,10 +1,14 @@
-import re, string
+import re, string, cgi
 from cStringIO import StringIO
-from image import createImage
+from image import createImage, createCoverFromImage
 
 '''
 Created on May 31, 2011
 @author: rhuang
+
+Modified on Feb 8th, 2015
+@modifier: mmartinez
+#note - I'm heavily modifying this class as I find it unintuitive.
 '''
 
 class Html():
@@ -18,12 +22,23 @@ class Html():
     textBlock = None
     imageCount = 1
     prevLine = ''
-    hasContent=False
+    hasTOC = False
+    orig_lines = []
+    preprocessed_lines = []
     def __init__(self, rfc, input, output):
         self.input = input
         self.output = output
         self.rfc = rfc.lower()
         self.info = StringIO()
+        
+        for line in self.input:
+            self.orig_lines.append(line)
+            line = cgi.escape(line)
+            self.hasTOC = is_toc(line) or self.hasTOC
+            self.preprocessed_lines.append(line)
+        
+        if not self.hasTOC:
+           builtTOC = buildTOC(preprocessed_lines)
         
     def writeInfo(self, line):
         if not re.match('^\s*$', line):
@@ -42,8 +57,7 @@ class Html():
 </head>
 <body>''' % (self.rfc.upper()+" - "+self.title))
             createImage(self.info.getvalue(), '%s/auths.jpg' % (self.rfc))
-            #self.info.close()
-            #self.info = StringIO()
+            createCoverFromImage('%s/auths.jpg' % (self.rfc), '%s/cover.jpg' % (self.rfc))
 
             self.output.write('<img src="auths.jpg" />')
             self.output.write("<h1>%s</h1>" % (self.title))
@@ -58,9 +72,9 @@ class Html():
         if isRFCPageBreaker(line):
             return getattr(self, "writeAbstract")
         
-        if re.match(r'table of contents', line.lstrip().rstrip().lower()):
-            self.output.write("<mbp:pagebreak/>")
-            self.output.write('<p><a name="TOC"><h3>%s</h3></a></p>' % (line))
+        if is_toc(line):
+            self.output.write("<mbp:pagebreak/>\n")
+            self.output.write('<p><a id="TOC"/><h3>%s</h3></a></p>\n' % (line.rstrip()))
             return getattr(self, "writeTOC")
         
         if re.match(r'^\S.*', line):
@@ -80,7 +94,6 @@ class Html():
         
         if re.match(r'^\S.*', line) and not re.search(r'\.{3}', line):
             self.output.write("<mbp:pagebreak/>\n")
-            self.hasContent=True
             return self.writeContent(line)
         
         m = re.match(r'^\s+([\d.]+)(\s+)([^.]+?)\.+?.*', line)
@@ -102,13 +115,13 @@ class Html():
         
         if re.match(r'^\d+\.?\s.*', line):
             m=re.match(r'^(\d+)\.?\s.*', line)
-            self.output.write('\n<a name="%s"><h2>%s</h2></a>\n<p>\n' %( m.group(1), line))
+            self.output.write('\n<a id="%s"/><h2>%s</h2></a>\n<p>\n' %( m.group(1), line))
         elif re.match(r'^\s*\d+\.\d+\.?\s.*', line):
             m=re.match(r'^\s*(\d+\.\d+)\.?\s.*', line)
-            self.output.write('\n<a name="%s"><h3>%s</h3></a>\n<p>\n' %( m.group(1), line))
+            self.output.write('\n<a id="%s"/><h3>%s</h3></a>\n<p>\n' %( m.group(1), line))
         elif re.match(r'^\s*\d+\.\d+\.\d+\.?\s.*', line):
             m=re.match(r'^\s*(\d+\.\d+\.\d+)\.?\s.*', line)
-            self.output.write('\n<a name="%s"><h4>%s</h4></a>\n<p>\n' %( m.group(1), line))
+            self.output.write('\n<a id="%s"/><h4>%s</h4></a>\n<p>\n' %( m.group(1), line))
         elif re.match(r'^\s*\d+\.\d+\.\d+[\d.]+\.?\s.*', line):
             m=re.match(r'^\s*(\d+\.\d+\.\d+[\d.]+)\.?\s.*', line)
             lnk = m.group(1)[-1] == '.' and m.group(1)[:-1] or m.group(1)
@@ -207,13 +220,23 @@ class Html():
 
     def createHTML(self):
         lineProcessor = getattr(self, "write"+self.rfcElms[0])
-        for line in self.input:
+        for line in self.preprocessed_lines:
             lineProcessor = lineProcessor(line)
             self.prevLine = line
         self.output.write("</body></html>")
 
 def isRFCPageBreaker(line):
-    return re.match(r'.*\[Page.*\d+?\]', line) or re.match(r'^RFC.*[1-2]\d\d\d', line)
+    return is_normal_page_number(line) or is_roman_numeral(line) or is_other_formatting(line)
+
+def is_normal_page_number(line):
+    return re.match(r'.*\[Page.*\d+?\]', line) 
+
+def is_roman_numeral(line):
+    # F'ing Roman numerals...
+    return re.match(r'^RFC.*[1-2]\d\d\d', line) 
+
+def is_other_formatting(line):
+    return re.match(r'.*\[Page.*M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})?\]', line, re.IGNORECASE)
 
 isFigureLine = lambda i: string.count(i, '---') > 0 or string.count(i, '|') > 1 or string.count(i, '+') > 1 or string.count(i, '>') > 3 or string.count(i, '<') > 3
 
@@ -233,3 +256,6 @@ def isImageOutput(lines):
             return True
 
     return False
+
+def is_toc(line):
+    return re.match(r'table of contents', line.lstrip().rstrip().lower())

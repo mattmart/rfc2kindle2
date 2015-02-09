@@ -43,8 +43,6 @@ class Html():
             self.hasTOC = is_toc(line) or self.hasTOC
             self.preprocessed_lines.append(line)
         
-        if not self.hasTOC:
-           built_toc = build_toc(self.preprocessed_lines)
         
     def writeInfo(self, line):
         if not re.match('^\s*$', line):
@@ -79,7 +77,10 @@ class Html():
             return getattr(self, "writeAbstract")
         
         if not self.hasTOC:
-            
+            self.output.write("<mbp:pagebreak/>\n")
+            for bline in build_toc(self.preprocessed_lines):
+                self.writeTOC(bline)
+            self.writeContent(line)
             return getattr(self, "writeContent")
             
         if is_toc(line):
@@ -274,5 +275,5 @@ def build_toc(lines):
     build_toc = []
     for line in lines:
         if re.match(r'^\d+\.', line):
-            build_toc.append(line)
+            build_toc.append(' ' + line + ' ... 1')
     return build_toc

@@ -58,8 +58,8 @@ def rfc2mobi(kgen, rfc, lines):
     #1 or 0 means warnings or success
     if exitCode >= 2:
         print "Fatal error while processing %s." %(rfc)
-        print "Deleting attempted directory %s." %(rfc)
-        shutil.rmtree(doc)
+        print "Deleting attempted directory %s." %(directory)
+        shutil.rmtree(directory)
     else:  
         print "Successfully converted %s into %s directory." % (rfc, rfc)
 
@@ -132,4 +132,10 @@ if __name__ == '__main__':
     par_dir = configuration.get_default_dir()
     
     #the path is ready, the args are clean, lock 'n load
+    if len(lines) < 10:
+        for line in lines:
+            if "was never issued." in line:
+                print line
+                sys.exit(2)
+
     rfc2mobi(kgen, doc, lines)

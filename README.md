@@ -13,3 +13,7 @@ An attempt to clean up abandoned project rfc2mobi
 link for those interested in the history here:
 https://code.google.com/p/rfc2kindle/
 
+open list of topics in no particular order:
+1) push to kindle automatically
+2) better identify TOC entries w/ dots in name
+3) handle page breaks better

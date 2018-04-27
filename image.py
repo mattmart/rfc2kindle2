@@ -3,7 +3,8 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 #textFont=ImageFont.truetype("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", 20)
-_default_font = ImageFont.truetype('/Library/Fonts/Courier New Bold.ttf', 18)
+#_default_font = ImageFont.truetype('/Library/Fonts/Courier New Bold.ttf', 18)
+_default_font = ImageFont.truetype('/usr/share/fonts/dejavu/DejaVuSans.ttf',20)
 
 class RFCImage():
     def __init__(self, width, height, filename):
@@ -42,7 +43,7 @@ def createImage(text, filename):
 
 # Turn the authors page into a .mobi compliant cover (at least 500x800 px)
 def createCoverFromImage(srcFilename, destFilename):
-    print "Generating cover from %s..." % (srcFilename)
+    print("Generating cover from ", srcFilename, "...")
     origImg = Image.open(srcFilename)
 
     imgSize = list(origImg.size)
@@ -57,7 +58,8 @@ def createCoverFromImage(srcFilename, destFilename):
     coverImg = Image.new('RGB',tuple(imgSize),(255,255,255))
     coverImg.paste(origImg,tuple(imgOffset))
     coverImg.save(destFilename)
-    print "Cover %s generated (%s x %s px) from %s (%s x %s px)." % (destFilename, imgSize[0], imgSize[1], srcFilename, origImg.size[0], origImg.size[1])
+    #TODO convert the following print stmt
+    #print("Cover", destFilename, "generated (%s x %s px) from %s (%s x %s px)." % (destFilename, imgSize[0], imgSize[1], srcFilename, origImg.size[0], origImg.size[1])
 
 if __name__ == "__main__":
     figure='''

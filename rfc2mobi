@@ -18,7 +18,7 @@ Created on May 31, 2011
 @modifier: mmartinez
 '''
 
-import urllib2, urllib, sys, os, getopt, io, subprocess
+import requests, sys, os, getopt, io, subprocess
 import configuration
 import shutil
 import argparse
@@ -57,17 +57,17 @@ def rfc2mobi(kgen, rfc, lines):
     
     #1 or 0 means warnings or success
     if exitCode >= 2:
-        print "Fatal error while processing %s." %(rfc)
-        print "Deleting attempted directory %s." %(directory)
+        print("Fatal error while processing ",rfc)
+        print("Deleting attempted directory ",directory)
         shutil.rmtree(directory)
     else:  
-        print "Successfully converted %s into %s directory." % (rfc, rfc)
+        print("Successfully converted ", rfc, " into ", rfc, " directory.")
 
 def usage():
     '''
     Usage of this program
     '''
-    print __doc__
+    print(__doc__)
 
 def getlines(doc, link, file):
     '''
@@ -76,16 +76,13 @@ def getlines(doc, link, file):
     final_lines = []
 
     if file is None:
-        print ""
-        print "link = %s, rfc was = %s" % (link, doc)
-        req = urllib2.Request(link)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
-        response = urllib2.urlopen(req)
-        for line in response:
+        print("")
+        print("link = ", link ,", rfc was = ", doc)
+        response = requests.get(link)
+        for line in response.text:
             final_lines.append(line)
-        response.close()
     elif not os.path.exists(file):
-        print "Failed to fetch from file, but we were given the option for it! bailing..."
+        print("Failed to fetch from file, but we were given the option for it! bailing...")
         exit(1)
     else:
         with open(file,'r') as myfile:
@@ -113,7 +110,7 @@ if __name__ == '__main__':
         kgen=arg
       elif opt in ("-f", "--rfc-file"):
         file=arg
-        print "file was " + file
+        print("file was ",file)
 
     if len(sys.argv) < 2:
       usage()
@@ -135,7 +132,7 @@ if __name__ == '__main__':
     if len(lines) < 10:
         for line in lines:
             if "was never issued." in line:
-                print line
+                print(line)
                 sys.exit(2)
 
     rfc2mobi(kgen, doc, lines)

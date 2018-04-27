@@ -1,12 +1,10 @@
-#!/usr/bin/env python -B
-
 '''
 helper class to fetch constants for rfc2mobi
 '''
 
-import ConfigParser
+from configparser import ConfigParser 
 
-config = ConfigParser.SafeConfigParser({'parDir': './mobiRFC', 'kindlegen':'./kindlegen'})
+config = ConfigParser({'parDir': './mobiRFC', 'kindlegen':'./kindlegen'})
 config.read('rfc2mobi.cfg')
 
 def get_default_dir():

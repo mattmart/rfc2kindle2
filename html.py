@@ -1,5 +1,5 @@
 import re, string, cgi
-from cStringIO import StringIO
+from io import StringIO
 from image import createImage, createCoverFromImage
 
 '''
@@ -177,24 +177,24 @@ class Html():
         return getattr(self, "pageBreakNewLine")
 
     def outputTextBlock(self):
-	outputlines = self.textBlock.getvalue().splitlines()[:-1]
-	if isImageOutput(outputlines):
-	    createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.root_dir + "/" + self.images_dir, self.imageCount))
-	    self.output.write('<img src="%s/img%d.jpg" />' % (self.images_dir, self.imageCount))
-	    self.imageCount = self.imageCount + 1
-	else:
-	    self.output.write("<blockquote> \n")
-	    for i in outputlines:
-		#if re.match(r'^\s+[A-Z].*', i):
-		#    self.output.write("<br />")
-		#self.output.write("%s\n" %(re.sub(r"\s", "&nbsp;", i.lstrip())))
-		self.output.write("%s\n" %(i))
-
-	    self.output.write("</blockquote> \n")
-
-	self.textBlock.close()
-	self.textBlock = None
-	self.output.write("<p>\n")
+        outputlines = self.textBlock.getvalue().splitlines()[:-1]
+        if isImageOutput(outputlines):
+            createImage(self.textBlock.getvalue(), "%s/img%d.jpg" % (self.root_dir + "/" + self.images_dir, self.imageCount))
+            self.output.write('<img src="%s/img%d.jpg" />' % (self.images_dir, self.imageCount))
+            self.imageCount = self.imageCount + 1
+        else:
+            self.output.write("<blockquote> \n")
+            for i in outputlines:
+                #if re.match(r'^\s+[A-Z].*', i):
+                #    self.output.write("<br />")
+                #self.output.write("%s\n" %(re.sub(r"\s", "&nbsp;", i.lstrip())))
+                self.output.write("%s\n" %(i))
+    
+            self.output.write("</blockquote> \n")
+    
+        self.textBlock.close()
+        self.textBlock = None
+        self.output.write("<p>\n")
 
     def writeTextBlock(self, line):
         # rqhuang.... bug here.
@@ -249,7 +249,7 @@ def is_roman_numeral(line):
 def is_other_formatting(line):
     return re.match(r'^RFC.*[1-2]\d\d\d', line) 
 
-isFigureLine = lambda i: string.count(i, '---') > 0 or string.count(i, '|') > 1 or string.count(i, '+') > 1 or string.count(i, '>') > 3 or string.count(i, '<') > 3
+isFigureLine = lambda i: i.count('---') > 0 or i.count('|') > 1 or i.count('+') > 1 or i.count('>') > 3 or i.count('<') > 3
 
 def isTextBlockLine(line, leftIndent):
     m = re.match(r'^(\s*)\S.*$', line)

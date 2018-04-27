@@ -17,3 +17,6 @@ open list of topics in no particular order:
 1) push to kindle automatically
 2) better identify TOC entries w/ dots in name
 3) handle page breaks better
+
+Installing required libraries
+dejavu-sans-fonts-2.35-5.fc27.noarch

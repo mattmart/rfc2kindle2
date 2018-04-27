@@ -26,7 +26,8 @@ from html import Html
 
 
 def rfc2mobi(kgen, rfc, lines):
-        
+    '''
+    '''    
     parDir = configuration.get_default_dir()
     directory = parDir + "/"+ rfc
     css_dir = configuration.get_css_dir() 

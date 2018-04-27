@@ -1,8 +1,7 @@
-#!/usr/bin/env python -B
+#!/usr/bin/env python3
 
 '''
 Usage: rfc2mobi [options] <rfcXXXX|url>
-
 A program to convert RFC or I-D to mobi formatted eBooks.
 Options:
   -k ..., --kindlegen=...  The kindlegen program to use. By default, it's "./kindlegen"
@@ -22,6 +21,7 @@ Created on May 31, 2011
 import urllib2, urllib, sys, os, getopt, io, subprocess
 import configuration
 import shutil
+import argparse
 from html import Html
 
 
